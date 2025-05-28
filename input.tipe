@@ -1,0 +1,15 @@
+operator ( a ++ )
+    return ( a + 1 ) ;
+
+operator ( :f x )
+    return ( 1 - x ) ;
+
+operator ( a b -> c )
+    return ( ( ( a * b ) / ( a + b ) ) == c ) ;
+
+operator ( :main )
+    let sotana   =  4 ;
+    let  mark_zuckerberg = 5 ;
+    sotana = ( sotana ++ ) ; 
+    
+    return ( sotana mark_zuckerberg -> ( :f sotana ) ) ;
