@@ -1,4 +1,5 @@
-#include "tipe.h"
+#include "parser.h"
+#include <memory>
 
 SyntaxError::SyntaxError(const char* str, optional<parseNode> expected)
     : runtime_error::runtime_error(str), expected(expected) {}
@@ -166,4 +167,81 @@ parseTree parse_EXPR_LIST(TokenStream& stream) {
         }
         else throw e;
     }
+}
+
+#define DEF_toAST(V) \
+unique_ptr<AST##V> toAST##V(const parseTree&)
+DEF_toAST(Lvalue); DEF_toAST(RvalueVar); DEF_toAST(Statement); DEF_toAST(OpDef);
+DEF_toAST(Expr); DEF_toAST(OpApply); DEF_toAST(Define); DEF_toAST(Assign); DEF_toAST(Return);
+
+#define DEF_listToAST(V) \
+vector<unique_ptr<AST##V>> listToAST##V(const parseTree& tree) { \
+    vector<unique_ptr<AST##V>> res; \
+    const parseTree* curr = &tree; \
+    while (curr->childs.size()) { \
+        res.emplace_back(toAST##V(curr->childs[0])); \
+        curr = &curr->childs[1]; \
+    } \
+    return res; \
+}
+DEF_listToAST(Expr); DEF_listToAST(Statement);
+DEF_listToAST(Lvalue); DEF_listToAST(OpDef);
+
+AST toAST(const parseTree& tree) {
+    return {.ops = listToASTOpDef(tree)};
+}
+
+unique_ptr<ASTOpDef> toASTOpDef(const parseTree& tree) {
+    return make_unique<ASTOpDef>(ASTOpDef{
+        .op = tree.childs[3].root.val.tok,
+        .lhs_args = listToASTLvalue(tree.childs[2]),
+        .rhs_args = listToASTLvalue(tree.childs[4]),
+        .statements = listToASTStatement(tree.childs[6])
+    });
+}
+
+unique_ptr<ASTLvalue> toASTLvalue(const parseTree& tree) {
+    return make_unique<ASTLvalue>(ASTLvalue{.id = tree.root.val.tok});
+}
+
+unique_ptr<ASTRvalueVar> toASTRvalueVar(const parseTree& tree) {
+    return make_unique<ASTRvalueVar>(ASTRvalueVar{.id = tree.root.val.tok});
+}
+
+unique_ptr<ASTStatement> toASTStatement(const parseTree& tree) {
+    if (tree.childs.size() == 3) return toASTReturn(tree);
+    if (tree.childs.size() == 4) return toASTAssign(tree);
+    if (tree.childs.size() == 5) return toASTDefine(tree);
+    return 0;
+}
+
+unique_ptr<ASTReturn> toASTReturn(const parseTree& tree) {
+    return make_unique<ASTReturn>(ASTReturn{.expr = toASTExpr(tree.childs[1])});
+}
+
+unique_ptr<ASTAssign> toASTAssign(const parseTree& tree) {
+    return make_unique<ASTAssign>(ASTAssign{
+            .lval = toASTLvalue(tree.childs[0]),
+            .expr = toASTExpr(tree.childs[2])
+            });
+}
+
+unique_ptr<ASTDefine> toASTDefine(const parseTree& tree) {
+    return make_unique<ASTDefine>(ASTDefine{
+            .lval = toASTLvalue(tree.childs[1]),
+            .expr = toASTExpr(tree.childs[3])
+            });
+}
+
+unique_ptr<ASTExpr> toASTExpr(const parseTree& tree) {
+    if(tree.childs.size() == 1) return toASTRvalueVar(tree);
+    else return toASTOpApply(tree);
+}
+
+unique_ptr<ASTOpApply> toASTOpApply(const parseTree& tree) {
+    return make_unique<ASTOpApply>(ASTOpApply{
+            .op = tree.childs[2].root.val.tok,
+            .lhs = listToASTExpr(tree.childs[1]),
+            .rhs = listToASTExpr(tree.childs[3])
+            });
 }

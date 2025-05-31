@@ -1,4 +1,5 @@
-#include "tipe.h"
+#include "lexer.h"
+#include "parser.h"
 
 #include <fstream>
 #include <cassert>
@@ -27,6 +28,7 @@ int main(int argc, char** argv)
 
     vector<Token> tokens = lexer(input);
     parseTree tree = parser(tokens);
+    AST ast = toAST(tree);
 
     return 0;
 }
