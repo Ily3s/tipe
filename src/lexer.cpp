@@ -25,7 +25,7 @@ ConsList<T>::~ConsList() {
 
 ConsList<string> lexemes;
 
-string binop_hds = "*+-/\\><={}[]^!:%.@?";
+string binop_hds = "*+-/\\><={}[]^!:%.@?|&";
 
 vector<Token> lexer(string input)
 {

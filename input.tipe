@@ -7,15 +7,33 @@ operator ( a ? )
 operator ( ! a )
     return ( 1 - ( a ? ) ) ;
 
+operator ( a || b )
+    return ( ( a ? ) + ( b ? ) ) ;
+
+operator ( a && b )
+    return ( a * b ) ;
+
 operator ( a != b )
     return ( a - b ) ;
 
 operator ( a == b )
     return ( ! ( a != b ) ) ;
 
+operator ( a <= b )
+    return ( ( ( a - b ) - 1 ) / 9223372036854775807 ) ;
+
+operator ( a < b )
+    return ( ( a <= b ) || ( a == b ) ) ;
+
+operator ( a > b )
+    return ( b < a ) ;
+
+operator ( a >= b )
+    return ( b <= a ) ;
+
 operator ( :main )
     let a = 5 ;
     let b = 6 ;
     let c = 3 ;
 
-    return ( ( ( a + c ) - 2 ) == b ) ;
+    return ( ( b >= ( a + 1 ) ) ? ) ;

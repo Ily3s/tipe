@@ -2,6 +2,7 @@
 #include "parser.h"
 #include "codegen.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <cassert>
 #include <iostream>
@@ -26,6 +27,9 @@ int main(int argc, char** argv)
     ofstream out{"out.asm"};
     ast.codegen(out, env);
     out.close();
+
+    system("nasm -felf64 out.asm");
+    system("ld out.o");
 
     return 0;
 }

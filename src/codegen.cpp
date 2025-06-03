@@ -251,6 +251,8 @@ void ASTOpApply::codegen(ofstream& out, Environement& env) {
     Signature negate_sign = {string("-"), 0, 1};
     prelude_binops.insert({string("+"), "add"});
     prelude_binops.insert({string("-"), "sub"});
+    prelude_binops.insert({string("*"), "imul"});
+    prelude_binops.insert({string("/"), "idiv"});
     auto it1 = prelude_binops.find(op.name);
     if (sign == negate_sign) {
         rhs[0]->codegen(out, env);
@@ -260,8 +262,12 @@ void ASTOpApply::codegen(ofstream& out, Environement& env) {
         rhs[0]->codegen(out, env);
         out << "\tpush rax\n";
         lhs[0]->codegen(out, env);
-        out << "\tpop rsi\n"
-            << "\t" << it1->second << " rax, rsi\n";
+        out << "\tpop rsi\n";
+        if (op.name == string("/"))
+            out << "\txor rdx, rdx\n"
+                << "\tidiv rsi\n";
+        else
+            out << "\t" << it1->second << " rax, rsi\n";
         return;
     }
     for (auto& l_arg : lhs) {
