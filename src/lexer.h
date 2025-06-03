@@ -12,12 +12,7 @@
 
 using namespace std;
 
-extern void* symbol_table;
-extern size_t symbol_nb;
-
 extern string binop_hds;
-
-extern unordered_map<string, int> ids_map;
 
 enum tokent{
     LET,
@@ -35,10 +30,31 @@ enum tokent{
 struct Token{
     tokent type;
     int value = -1;
+    const char* name = 0;
+    struct {
+        int line = 0, col = 0;
+    } dbg_info;
     Token(tokent t) : type(t) {}
     Token(tokent t, int v) : type(t), value(v) {}
 };
 
 vector<Token> lexer(string input);
+
+template <typename T> struct maillon;
+template <typename T>
+class ConsList{
+    public :
+        maillon<T>* data = NULL;
+        void push(const T& val);
+        T& front();
+        ~ConsList();
+};
+
+template <typename T>
+struct maillon{
+    T val;
+    ConsList<T> next = NULL;
+    maillon(const T& val, const ConsList<T>& next);
+};
 
 #endif

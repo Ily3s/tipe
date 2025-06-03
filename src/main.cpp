@@ -1,16 +1,10 @@
 #include "lexer.h"
 #include "parser.h"
+#include "codegen.h"
 
 #include <fstream>
 #include <cassert>
 #include <iostream>
-
-void* symbol_table;
-size_t symbol_nb = 0;
-
-string binop_hds = "*+-/\\><={}[]^!:%.";
-
-unordered_map<string, int> ids_map;
 
 int main(int argc, char** argv)
 {
@@ -29,6 +23,11 @@ int main(int argc, char** argv)
     vector<Token> tokens = lexer(input);
     parseTree tree = parser(tokens);
     AST ast = toAST(tree);
+
+    Environement env;
+    ofstream out{"out.asm"};
+    ast.codegen(out, env);
+    out.close();
 
     return 0;
 }

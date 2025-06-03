@@ -1,15 +1,22 @@
-operator ( a ++ )
-    return ( a + 1 ) ;
+operator ( a - b )
+    return ( a + ( - b ) ) ;
 
-operator ( :f x )
-    return ( 1 - x ) ;
+operator ( ! a )
+    return ( 1 - a ) ;
+
+operator ( a != b )
+    return ( a - b ) ;
+
+operator ( a == b )
+    return ( ! ( a != b ) ) ;
 
 operator ( a b -> c )
-    return ( ( ( a * b ) / ( a + b ) ) == c ) ;
+    return ( ( a + b ) == c ) ;
 
 operator ( :main )
-    let sotana   =  4 ;
-    let  mark_zuckerberg = 5 ;
-    sotana = ( sotana ++ ) ; 
+    let a = 7 ;
+    let b = 6 ;
+    let c = ( a + b ) ;
+    let d = ( ( a + 5 ) - b ) ;
     
-    return ( sotana mark_zuckerberg -> ( :f sotana ) ) ;
+    return ( ( - d ) c -> a ) ;
