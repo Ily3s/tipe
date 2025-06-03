@@ -4,6 +4,7 @@
 #include <memory>
 #include <sstream>
 #include <cassert>
+#include <unordered_map>
 
 ASTOpDef::ASTOpDef(const Token& op,
         vector<unique_ptr<ASTLvalue>>&& lhs_args,
@@ -33,9 +34,15 @@ AST::AST(vector<unique_ptr<ASTOpDef>>&& ops)
 ASTLvalue::ASTLvalue(const Token& id)
     : id(id) {}
 
+ASTIfStatement::ASTIfStatement(unique_ptr<ASTExpr>&& cond,
+        unique_ptr<ASTExpr>&& expr_true,
+        unique_ptr<ASTExpr>&& expr_false)
+    : cond(std::move(cond)), expr_true(std::move(expr_true)), expr_false(std::move(expr_false)) {}
+
 #define DEF_toAST(V) unique_ptr<AST##V> toAST##V(const parseTree&)
     DEF_toAST(Lvalue); DEF_toAST(Rvalue); DEF_toAST(Statement); DEF_toAST(OpDef);
     DEF_toAST(Expr); DEF_toAST(OpApply); DEF_toAST(Define); DEF_toAST(Assign); DEF_toAST(Return);
+    DEF_toAST(IfStatement);
 
 #define DEF_listToAST(V) \
         vector<unique_ptr<AST##V>> listToAST##V(const parseTree& tree) { \
@@ -96,9 +103,19 @@ unique_ptr<ASTDefine> toASTDefine(const parseTree& tree) {
             });
 }
 
+unique_ptr<ASTIfStatement> toASTIfStatement(const parseTree& tree) {
+    return make_unique<ASTIfStatement>(ASTIfStatement{
+            toASTExpr(tree.childs[1]),
+            toASTExpr(tree.childs[3]),
+            toASTExpr(tree.childs[5])
+            });
+}
+
 unique_ptr<ASTExpr> toASTExpr(const parseTree& tree) {
-    if(tree.childs.size() == 1) return toASTRvalue(tree.childs[0]);
-    else return toASTOpApply(tree);
+    if (tree.childs.size() == 1) return toASTRvalue(tree.childs[0]);
+    if (tree.childs.size() == 5) return toASTOpApply(tree);
+    if (tree.childs.size() == 6) return toASTIfStatement(tree);
+    return 0;
 }
 
 unique_ptr<ASTOpApply> toASTOpApply(const parseTree& tree) {
@@ -149,8 +166,8 @@ void ASTOpDef::codegen(ofstream& out, Environement& env) {
         out << "_start:\n";
     else
         out << "op" << env.ops_nb-1 << ":\n";
-    out << "push rbp\n"
-        << "mov rbp, rsp\n";
+    out << "\tpush rbp\n"
+        << "\tmov rbp, rsp\n";
     env.curr_addr = -8;
 
     int offset = (lhs_args.size() + rhs_args.size()-1)*8+16;
@@ -170,13 +187,13 @@ void ASTOpDef::codegen(ofstream& out, Environement& env) {
 
     del_scope(out, env);
 
-    out << "pop rbp\n";
+    out << "\tpop rbp\n";
     if (sign == main_sign)
-        out << "mov rdi, rax\n"
-            << "mov rax, 60\n"
-            << "syscall\n\n";
+        out << "\tmov rdi, rax\n"
+            << "\tmov rax, 60\n"
+            << "\tsyscall\n\n";
     else
-        out << "ret\n\n";
+        out << "\tret\n\n";
 }
 
 void ASTScope::init_scope(ofstream& out, Environement& env) {
@@ -184,7 +201,7 @@ void ASTScope::init_scope(ofstream& out, Environement& env) {
 }
 
 void ASTScope::del_scope(ofstream& out, Environement& env) {
-    out << "add rsp, " << bytes_owned << "\n";
+    out << "\tadd rsp, " << bytes_owned << "\n";
     for (int i = 0; i < int_def_nb; i++) {
         auto it = env.adress_table.find(env.stack_frame.back());
         assert(it != env.adress_table.end());
@@ -208,14 +225,14 @@ void ASTDefine::codegen(ofstream& out, Environement& env) {
     lval->offset = env.curr_addr;
     lval->codegen(out, env);
     expr->codegen(out, env);
-    out << "push rax\n";
+    out << "\tpush rax\n";
     env.curr_scope->bytes_owned += 8;
     env.curr_addr -= 8;
 }
 
 void ASTRvalue::codegen(ofstream& out, Environement& env) {
     if (id.type == NUM)
-        out << "mov rax, " << id.value << '\n';
+        out << "\tmov rax, " << id.value << '\n';
     else {
         auto it = env.adress_table.find(id.name);
         if (it == env.adress_table.end()) {
@@ -223,33 +240,37 @@ void ASTRvalue::codegen(ofstream& out, Environement& env) {
             err << "identifier \"" << id.name << "\" is used without being defined here";
             throw SemanticError(err.str());
         }
-        out << "mov rax, QWORD [rbp+" << it->second << "]\n";
+        out << "\tmov rax, QWORD [rbp+" << it->second << "]\n";
     }
 }
 
+unordered_map<string, string> prelude_binops;
+
 void ASTOpApply::codegen(ofstream& out, Environement& env) {
     Signature sign = {op.name, (int)lhs.size(), (int)rhs.size()};
-    Signature add_sign = {string("+"), 1, 1};
     Signature negate_sign = {string("-"), 0, 1};
+    prelude_binops.insert({string("+"), "add"});
+    prelude_binops.insert({string("-"), "sub"});
+    auto it1 = prelude_binops.find(op.name);
     if (sign == negate_sign) {
         rhs[0]->codegen(out, env);
-        out << "neg rax\n";
+        out << "\tneg rax\n";
         return;
-    } else if (sign == add_sign) {
-        lhs[0]->codegen(out, env);
-        out << "push rax\n";
+    } else if (sign.left_arity == 1 && sign.right_arity == 1 && it1 != prelude_binops.end()) {
         rhs[0]->codegen(out, env);
-        out << "pop rsi\n"
-            << "add rax, rsi\n";
+        out << "\tpush rax\n";
+        lhs[0]->codegen(out, env);
+        out << "\tpop rsi\n"
+            << "\t" << it1->second << " rax, rsi\n";
         return;
     }
     for (auto& l_arg : lhs) {
         l_arg->codegen(out, env);
-        out << "push rax\n";
+        out << "\tpush rax\n";
     }
     for (auto& r_arg : rhs) {
         r_arg->codegen(out, env);
-        out << "push rax\n";
+        out << "\tpush rax\n";
     }
     auto it = env.op_ids.find(sign);
     if (it == env.op_ids.end()) {
@@ -257,12 +278,27 @@ void ASTOpApply::codegen(ofstream& out, Environement& env) {
         err << "operator \"" << op.name << "\" with these arguments is used without being defined here";
         throw SemanticError(err.str());
     }
-    out << "call op" << it->second << '\n';
-    out << "add rsp, " << (lhs.size()+rhs.size())*8 << '\n';
+    out << "\tcall op" << it->second << '\n';
+    out << "\tadd rsp, " << (lhs.size()+rhs.size())*8 << '\n';
 }
 
 void ASTReturn::codegen(ofstream& out, Environement& env) {
     expr->codegen(out, env);
+}
+
+int ASTIfStatement::branch_count = 0;
+
+void ASTIfStatement::codegen(ofstream& out, Environement& env) {
+    cond->codegen(out, env);
+    int branchfalse = branch_count;
+    out << "\tcmp rax, 0\n"
+        << "\tje branch" << branch_count++ << '\n';
+    expr_true->codegen(out, env);
+    int branchtrue = branch_count;
+    out << "\tjmp branch" << branch_count++ << '\n';
+    out << "branch" << branchfalse << ":\n";
+    expr_false->codegen(out, env);
+    out << "branch" << branchtrue << ":\n";
 }
 
 void ASTAssign::codegen(ofstream& out, Environement& env) {
@@ -273,5 +309,5 @@ void ASTAssign::codegen(ofstream& out, Environement& env) {
         err << "identifier \"" << lval->id.name << "\" is used without being defined here";
         throw SemanticError(err.str());
     }
-    out << "mov QWORD [rbp+" << it->second << "], rax\n";
+    out << "\tmov QWORD [rbp+" << it->second << "], rax\n";
 }

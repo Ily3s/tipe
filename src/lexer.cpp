@@ -25,7 +25,7 @@ ConsList<T>::~ConsList() {
 
 ConsList<string> lexemes;
 
-string binop_hds = "*+-/\\><={}[]^!:%.";
+string binop_hds = "*+-/\\><={}[]^!:%.@?";
 
 vector<Token> lexer(string input)
 {
@@ -45,8 +45,11 @@ vector<Token> lexer(string input)
             else if (current == "let") tokens.emplace_back(LET);
             else if (current == "operator") tokens.emplace_back(OPERATOR);
             else if (current == "return") tokens.emplace_back(RETURN);
+            else if (current == "if") tokens.emplace_back(IF);
+            else if (current == "then") tokens.emplace_back(THEN);
+            else if (current == "else") tokens.emplace_back(ELSE);
             else if (current[0] <= '9' && current[0] >= '0') {
-                tokens.emplace_back(NUM, atoi(&current[0]));
+                tokens.emplace_back(NUM, atoll(&current[0]));
             }
             else {
                 tokent t = binop_hds.find(current[0]) == string::npos ? ID : OPID;

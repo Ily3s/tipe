@@ -24,18 +24,21 @@ enum tokent{
     LPAR,
     RPAR,
     NUM,
-    SEMICOL
+    SEMICOL,
+    IF,
+    THEN,
+    ELSE
 };
 
 struct Token{
     tokent type;
-    int value = -1;
+    int64_t value = -1;
     const char* name = 0;
     struct {
         int line = 0, col = 0;
     } dbg_info;
     Token(tokent t) : type(t) {}
-    Token(tokent t, int v) : type(t), value(v) {}
+    Token(tokent t, int64_t v) : type(t), value(v) {}
 };
 
 vector<Token> lexer(string input);

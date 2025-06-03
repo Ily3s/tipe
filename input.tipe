@@ -1,8 +1,11 @@
 operator ( a - b )
     return ( a + ( - b ) ) ;
 
+operator ( a ? )
+    return if a then 1 else 0 ;
+
 operator ( ! a )
-    return ( 1 - a ) ;
+    return ( 1 - ( a ? ) ) ;
 
 operator ( a != b )
     return ( a - b ) ;
@@ -10,13 +13,9 @@ operator ( a != b )
 operator ( a == b )
     return ( ! ( a != b ) ) ;
 
-operator ( a b -> c )
-    return ( ( a + b ) == c ) ;
-
 operator ( :main )
-    let a = 7 ;
+    let a = 5 ;
     let b = 6 ;
-    let c = ( a + b ) ;
-    let d = ( ( a + 5 ) - b ) ;
-    
-    return ( ( - d ) c -> a ) ;
+    let c = 3 ;
+
+    return ( ( ( a + c ) - 2 ) == b ) ;

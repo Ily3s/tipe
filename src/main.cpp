@@ -18,8 +18,6 @@ int main(int argc, char** argv)
     file.read(&input[0], size);
     file.close();
 
-    cout << input << endl;
-
     vector<Token> tokens = lexer(input);
     parseTree tree = parser(tokens);
     AST ast = toAST(tree);

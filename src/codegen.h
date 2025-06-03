@@ -4,6 +4,7 @@
 #include "parser.h"
 
 #include <fstream>
+#include <memory>
 #include <unordered_map>
 
 struct Signature{
@@ -107,6 +108,18 @@ class ASTReturn : public ASTStatement {
         unique_ptr<ASTExpr> expr;
         ASTReturn(unique_ptr<ASTExpr>&& expr);
         virtual void codegen(ofstream& out, Environement& env) override;
+};
+
+class ASTIfStatement : public ASTExpr {
+    public :
+        unique_ptr<ASTExpr> cond;
+        unique_ptr<ASTExpr> expr_true;
+        unique_ptr<ASTExpr> expr_false;
+        ASTIfStatement(unique_ptr<ASTExpr>&& cond,
+                       unique_ptr<ASTExpr>&& expr_true,
+                       unique_ptr<ASTExpr>&& expr_false);
+        virtual void codegen(ofstream& out, Environement& env) override;
+        static int branch_count;
 };
 
 class AST : public ASTScope {

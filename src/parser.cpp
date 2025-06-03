@@ -116,7 +116,10 @@ parseTree parse_STATEMENT(TokenStream& stream) {
     parseTree res = {.root = {STATEMENT}};
     TokenOpt tok;
     stream >> tok;
-    res.add_token(tok.value());
+    if (tok != LET && tok != RETURN && tok != ID)
+        stream.go_back();
+    else
+        res.add_token(tok.value());
     if (tok == LET) {
         stream >> tok;
         if (tok != ID) throw SyntaxError("expected variable name here", Token{ID});
@@ -150,6 +153,19 @@ parseTree parse_EXPR(TokenStream& stream) {
         stream >> tok;
         if (tok != RPAR) throw SyntaxError("expected \")\" here", Token{RPAR});
         res.add_token(tok.value());
+        return res;
+    } else if (tok == IF) {
+        parseTree res = {.root = {EXPR}};
+        res.add_token(tok.value());
+        res.childs.push_back(parse_EXPR(stream));
+        stream >> tok;
+        if (tok != THEN) throw SyntaxError("expected \"then\" here", Token{THEN});
+        res.add_token(tok.value());
+        res.childs.push_back(parse_EXPR(stream));
+        stream >> tok;
+        if (tok != ELSE) throw SyntaxError("expected \"else\" here", Token{ELSE});
+        res.add_token(tok.value());
+        res.childs.push_back(parse_EXPR(stream));
         return res;
     } else
         throw SyntaxError("expected an expression here", nonTerm{EXPR});
