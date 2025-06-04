@@ -7,6 +7,8 @@
 #include <memory>
 #include <unordered_map>
 
+#define TAPE_SIZE 80000
+
 struct Signature{
     string name;
     int left_arity, right_arity;
@@ -35,14 +37,42 @@ class ASTNode {
 
 class ASTLvalue : public ASTNode {
     public :
+        virtual string get_name(Environement& env) = 0;
+        virtual int size() = 0;
+};
+
+class ASTVar : public ASTLvalue {
+    public :
         Token id;
         int offset;
-        ASTLvalue(const Token& id);
+        ASTVar(const Token& id);
         virtual void codegen(ofstream& out, Environement& env) override;
+        void define_in_scope(Environement& env);
+        string get_name(Environement& env) override;
+        int size() override;
+};
+
+class ASTExpr;
+
+class ASTLvalAccess : public ASTLvalue {
+    public :
+        unique_ptr<ASTExpr> index;
+        ASTLvalAccess(unique_ptr<ASTExpr>&& index);
+        virtual void codegen(ofstream& out, Environement& env) override;
+        string get_name(Environement& env) override;
+        int size() override;
 };
 
 class ASTStatement : public ASTNode {
     public :
+
+};
+
+class ASTFuncCall : public ASTStatement {
+    public :
+        unique_ptr<ASTExpr> expr;
+        ASTFuncCall(unique_ptr<ASTExpr>&& expr);
+        virtual void codegen(ofstream& out, Environement& env) override;
 
 };
 
@@ -57,11 +87,11 @@ class ASTScope : public ASTNode {
 class ASTOpDef : public ASTScope {
     public :
         Token op;
-        vector<unique_ptr<ASTLvalue>> lhs_args, rhs_args;
+        vector<unique_ptr<ASTVar>> lhs_args, rhs_args;
         vector<unique_ptr<ASTStatement>> statements;
         ASTOpDef(const Token& op,
-                vector<unique_ptr<ASTLvalue>>&& lhs_args,
-                vector<unique_ptr<ASTLvalue>>&& rhs_args,
+                vector<unique_ptr<ASTVar>>&& lhs_args,
+                vector<unique_ptr<ASTVar>>&& rhs_args,
                 vector<unique_ptr<ASTStatement>>&& statements);
         virtual void codegen(ofstream& out, Environement& env) override;
 };
@@ -71,9 +101,20 @@ class ASTExpr : public ASTNode {
 };
 
 class ASTRvalue : public ASTExpr {
+
+};
+
+class ASTRvalToken : public ASTRvalue {
     public :
         Token id;
-        ASTRvalue(const Token& id);
+        ASTRvalToken(const Token& id);
+        virtual void codegen(ofstream& out, Environement& env) override;
+};
+
+class ASTRvalAccess : public ASTRvalue {
+    public :
+        unique_ptr<ASTExpr> index;
+        ASTRvalAccess(unique_ptr<ASTExpr>&& index);
         virtual void codegen(ofstream& out, Environement& env) override;
 };
 
@@ -89,9 +130,9 @@ class ASTOpApply : public ASTExpr {
 
 class ASTDefine : public ASTStatement {
     public :
-        unique_ptr<ASTLvalue> lval;
+        unique_ptr<ASTVar> lval;
         unique_ptr<ASTExpr> expr;
-        ASTDefine(unique_ptr<ASTLvalue>&& lval, unique_ptr<ASTExpr>&& expr);
+        ASTDefine(unique_ptr<ASTVar>&& lval, unique_ptr<ASTExpr>&& expr);
         virtual void codegen(ofstream& out, Environement& env) override;
 };
 

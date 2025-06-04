@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "lexer.h"
 
 SyntaxError::SyntaxError(const char* str, optional<parseNode> expected)
     : runtime_error::runtime_error(str), expected(expected) {}
@@ -47,7 +48,7 @@ public :
 #define DEF_PARSE_NONTERM(V) \
 parseTree parse_##V(TokenStream& stream)
 DEF_PARSE_NONTERM(START); DEF_PARSE_NONTERM(OP_BLOCK); DEF_PARSE_NONTERM(ID_LIST); DEF_PARSE_NONTERM(STAT_LIST);
-DEF_PARSE_NONTERM(STATEMENT); DEF_PARSE_NONTERM(EXPR); DEF_PARSE_NONTERM(EXPR_LIST);
+DEF_PARSE_NONTERM(STATEMENT); DEF_PARSE_NONTERM(EXPR); DEF_PARSE_NONTERM(EXPR_LIST); DEF_PARSE_NONTERM(ACCESS);
 
 parseTree parser(const vector<Token>& tokens)
 {
@@ -104,7 +105,7 @@ parseTree parse_STAT_LIST(TokenStream& stream) {
     TokenOpt tok;
     stream >> tok;
     stream.go_back();
-    if (tok == LET || tok == ID || tok == RETURN) {
+    if (tok != OPERATOR && tok.has_value()) {
         parseTree statement = parse_STATEMENT(stream);
         return {.root = {STAT_LIST}, .childs = {statement, parse_STAT_LIST(stream)}};
     } else
@@ -120,30 +121,33 @@ parseTree parse_STATEMENT(TokenStream& stream) {
         stream.go_back();
     else
         res.add_token(tok.value());
+    if (tok == LBRACKET)
+        res.childs.push_back(parse_ACCESS(stream));
     if (tok == LET) {
         stream >> tok;
         if (tok != ID) throw SyntaxError("expected variable name here", Token{ID});
         res.add_token(tok.value());
     }
-    if (tok == LET || tok == ID) {
+    if (tok == LET || tok == ID || tok == LBRACKET) {
         stream >> tok;
         if (tok != EQUALS) throw SyntaxError("expected \"=\" here", Token{EQUALS});
         res.add_token(tok.value());
     }
+
     res.childs.push_back(parse_EXPR(stream));
     stream >> tok;
     if (tok != SEMICOL) throw SyntaxError("expected \";\" here", Token{SEMICOL});
     res.add_token(tok.value());
     return res;
-};
+}
 
 parseTree parse_EXPR(TokenStream& stream) {
     TokenOpt tok;
     stream >> tok;
+    parseTree res = {.root = {EXPR}};
     if (tok == NUM || tok == ID)
         return {.root = {EXPR}, .childs = {{.root = {tok.value()}}}};
     else if (tok == LPAR) {
-        parseTree res = {.root = {EXPR}};
         res.add_token(tok.value());
         res.childs.push_back(parse_EXPR_LIST(stream));
         stream >> tok;
@@ -155,7 +159,6 @@ parseTree parse_EXPR(TokenStream& stream) {
         res.add_token(tok.value());
         return res;
     } else if (tok == IF) {
-        parseTree res = {.root = {EXPR}};
         res.add_token(tok.value());
         res.childs.push_back(parse_EXPR(stream));
         stream >> tok;
@@ -167,8 +170,27 @@ parseTree parse_EXPR(TokenStream& stream) {
         res.add_token(tok.value());
         res.childs.push_back(parse_EXPR(stream));
         return res;
+    } else if (tok == LBRACKET) {
+        stream.go_back();
+        res.childs.push_back(parse_ACCESS(stream));
+        return res;
     } else
         throw SyntaxError("expected an expression here", nonTerm{EXPR});
+}
+
+parseTree parse_ACCESS(TokenStream& stream) {
+    TokenOpt token;
+    stream >> token;
+    if (token != LBRACKET)
+        throw SyntaxError("expected \"[\" here", Token{LBRACKET});
+    parseTree res{.root = ACCESS};
+    res.add_token(token.value());
+    res.childs.push_back(parse_EXPR(stream));
+    stream >> token;
+    if (token != RBRACKET)
+        throw SyntaxError("expected \"]\" here", Token{RBRACKET});
+    res.add_token(token.value());
+    return res;
 }
 
 parseTree parse_EXPR_LIST(TokenStream& stream) {

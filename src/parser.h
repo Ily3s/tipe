@@ -13,7 +13,8 @@ enum nonTerm{
     STAT_LIST,
     STATEMENT,
     EXPR,
-    EXPR_LIST
+    EXPR_LIST,
+    ACCESS
 };
 
 class parseNode{

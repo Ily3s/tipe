@@ -1,0 +1,21 @@
+-> implémenter des meilleurs messages d'erreurs en affichant ligne, dbg_info ...
+
+-> ajouter toutes les SemanticError nécessaires (présence d'une fonction :main, d'un (et un seul) return à la fin de chaque operator ...) peut-être dans ce qui serait une analyse sémantique
+
+-> Refactor la distinction Lvalue/Rvalue : recourir à des classes différentes pour faire la distinction est overkill, peut-être ne faire la distinction que dans le codegen avec un flag spécial ...
+
+-> étudier la complexité du parsing TokenStream -> parseTree (copies des parseTree problématique, préférer les move instead)
+
+-> meilleur gestion du prelude (+, -, /, *, :main, ...)
+
+-> construction de l'AST : reconnaitre les différentes classes d'AST au nombre d'enfants du parseTree ça commence à bien faire ... (difficile à refactor)
+
+-> codegen.cpp commence à se faire long et la transi parseTree -> AST ce n'est pas vraiment du codegen ...
+
+-> somehow rendre possible le passage d'argument par référence (rendre possible l'operateur += ) (quoique peut-être déjà possible avec les pointeurs ...)
+
+-> refactor grammar : peut-être y inclure la notion de lvalue
+
+-> évidemment, on a besoin de string literal, parce que le print statement en 14 lignes ...
+
+-> peut-être enfin utiliser cette notion de scope pour faire de meilleurs if statements (cf .cpy_to)

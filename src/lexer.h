@@ -27,7 +27,9 @@ enum tokent{
     SEMICOL,
     IF,
     THEN,
-    ELSE
+    ELSE,
+    LBRACKET,
+    RBRACKET
 };
 
 struct Token{

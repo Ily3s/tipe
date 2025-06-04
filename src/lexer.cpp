@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <cassert>
+#include <unordered_map>
 
 template <typename T>
 maillon<T>::maillon(const T& val, const ConsList<T>& next)
@@ -25,7 +26,7 @@ ConsList<T>::~ConsList() {
 
 ConsList<string> lexemes;
 
-string binop_hds = "*+-/\\><={}[]^!:%.@?|&";
+string binop_hds = "*+-/\\><={}^!:%.@?|&";
 
 vector<Token> lexer(string input)
 {
@@ -33,21 +34,21 @@ vector<Token> lexer(string input)
     stringstream sstream{input};
     string current;
     string line;
+    unordered_map<string, tokent> keywords{
+        {"=", EQUALS}, {"(", LPAR}, {")", RPAR},
+        {"[", LBRACKET}, {"]", RBRACKET},
+        {"let", LET}, {";", SEMICOL},
+        {"operator", OPERATOR}, {"return", RETURN},
+        {"if", IF}, {"then", THEN}, {"else", ELSE}
+    };
     for (int i = 0; getline(sstream, line); i++)
     {
         stringstream sstream{line};
         while (!sstream.eof()) {
             if(!(sstream >> current)) break;
-            else if (current == "=") tokens.emplace_back(EQUALS);
-            else if (current == "(") tokens.emplace_back(LPAR);
-            else if (current == ")") tokens.emplace_back(RPAR);
-            else if (current == ";") tokens.emplace_back(SEMICOL);
-            else if (current == "let") tokens.emplace_back(LET);
-            else if (current == "operator") tokens.emplace_back(OPERATOR);
-            else if (current == "return") tokens.emplace_back(RETURN);
-            else if (current == "if") tokens.emplace_back(IF);
-            else if (current == "then") tokens.emplace_back(THEN);
-            else if (current == "else") tokens.emplace_back(ELSE);
+            auto it = keywords.find(current);
+            if (it != keywords.end())
+                tokens.emplace_back(it->second);
             else if (current[0] <= '9' && current[0] >= '0') {
                 tokens.emplace_back(NUM, atoll(&current[0]));
             }

@@ -1,25 +1,31 @@
 $$
 \begin{align}
-[\text{program}] &\to \begin{cases} [\text{operator}]~ [\text{program}] \\
+\langle\text{program}\rangle &\to \begin{cases} \langle\text{operator}\rangle~ \langle\text{program}\rangle \\
                               \epsilon \end{cases}
 \\
-[\text{operator}] &\to operator~ ([\text{id\_list}]~ op~ [\text{id\_list}])~ [\text{statements}]
+\langle\text{operator}\rangle &\to operator~ (\langle\text{id\_list}\rangle~ op~ \langle\text{id\_list}\rangle)~ \langle\text{statements}\rangle
 \\
-[\text{id\_list}] &\to \begin{cases} id~ [\text{id\_list}] \\
+\langle\text{id\_list}\rangle &\to \begin{cases} id~ \langle\text{id\_list}\rangle \\
                                      \epsilon \end{cases}
 \\
-[\text{statements}] &\to \begin{cases} [\text{statement}]~ [\text{statements}] \\
+\langle\text{statements}\rangle &\to \begin{cases} \langle\text{statement}\rangle~ \langle\text{statements}\rangle \\
                                             \epsilon \end{cases}
 \\
-[\text{statement}] &\to \begin{cases} let~ id = [\text{expr}];\\
-                       id = [\text{expr}];\\
-                       return~ [\text{expr}]; \end{cases}
+\langle\text{statement}\rangle &\to \begin{cases} let~ id = \langle\text{expr}\rangle;\\
+                       id = \langle\text{expr}\rangle;\\
+                       \langle\text{access}\rangle = \langle\text{expr}\rangle; \\
+                       return~ \langle\text{expr}\rangle; \\
+                       \langle\text{expr}\rangle; \end{cases}
 \\
-[\text{expr}] &\to \begin{cases} num \\
-                    ([\text{expr\_list}]~ op~ [\text{expr\_list}]) \\
-                    if~ [\text{expr}]~ then~ [\text{expr}]~ else~ [\text{expr}]
+\langle\text{expr}\rangle &\to \begin{cases} num \\
+                    id \\
+                    \langle\text{access}\rangle \\
+                    (\langle\text{expr\_list}\rangle~ op~ \langle\text{expr\_list}\rangle) \\
+                    if~ \langle\text{expr}\rangle~ then~ \langle\text{expr}\rangle~ else~ \langle\text{expr}\rangle
                     \end{cases} \\
-[\text{expr\_list}] &\to \begin{cases} [\text{expr}]~ [\text{expr\_list}] \\
+\langle\text{expr\_list}\rangle &\to \begin{cases} \langle\text{expr}\rangle~ \langle\text{expr\_list}\rangle \\
                         \epsilon \end{cases}
+\\
+\langle\text{access}\rangle &\to [~ \langle\text{expr}\rangle~ ]
 \end{align}
 $$

@@ -1,16 +1,22 @@
 $$
 \begin{align}
-[\text{program}] &\to [\text{operator}]^\text{\*}
+\langle\text{program}\rangle &\to \langle\text{operator}\rangle^\text{\*}
 \\
-[\text{operator}] &\to operator~ (id^\text{\*}~ op~ id^\text{\*})~ [\text{statement}]^\text{\*}
+\langle\text{operator}\rangle &\to operator~ (id^\text{\*}~ op~ id^\text{\*})~ \langle\text{statement}\rangle^\text{\*}
 \\
-[\text{statement}] &\to \begin{cases} let~ id = [\text{expr}];\\
-                       id = [\text{expr}];\\
-                       return~ [\text{expr}]; \end{cases}
+\langle\text{statement}\rangle &\to \begin{cases} let~ id = \langle\text{expr}\rangle;\\
+                       id = \langle\text{expr}\rangle;\\
+                       \langle\text{access}\rangle = \langle\text{expr}\rangle;\\
+                       return~ \langle\text{expr}\rangle; \\
+                       \langle\text{expr}\rangle; \end{cases}
 \\
-[\text{expr}] &\to \begin{cases} num \\
-                    ([\text{expr}]^\text{\*}~ op~ [\text{expr}]^\text{\*}) \\
-                    if~ [\text{expr}]~ then~ [\text{expr}]~ else~ [\text{expr}]
+\langle\text{expr}\rangle &\to \begin{cases} num \\
+                    id \\
+                    \langle\text{access}\rangle \\
+                    (\langle\text{expr}\rangle^\text{\*}~ op~ \langle\text{expr}\rangle^\text{\*}) \\
+                    if~ \langle\text{expr}\rangle~ then~ \langle\text{expr}\rangle~ else~ \langle\text{expr}\rangle
                     \end{cases}
+\\
+\langle\text{access}\rangle &\to [~ \langle\text{expr}\rangle~ ]
 \end{align}
 $$
