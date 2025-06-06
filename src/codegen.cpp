@@ -187,11 +187,11 @@ void AST::codegen(ofstream& out, Environement& env) {
 
 void ASTOpDef::codegen(ofstream& out, Environement& env) {
     init_scope(out, env);
-    Signature sign = {op.name, (int)lhs_args.size(), (int)rhs_args.size()};
+    Signature sign = {op.lexeme, (int)lhs_args.size(), (int)rhs_args.size()};
     auto [_, success] = env.op_ids.insert({sign, env.ops_nb++});
     if (!success) {
         stringstream error_msg;
-        error_msg << "operator \"" << op.name << "\" is redefined here";
+        error_msg << "operator \"" << op.lexeme << "\" is redefined here";
         throw SemanticError(error_msg.str());
     }
     const static Signature main_sign = {":main", 0, 0};
@@ -251,13 +251,13 @@ void ASTScope::del_scope(ofstream& out, Environement& env) {
 }
 
 void ASTVar::define_in_scope(Environement& env) {
-    auto [_, success] = env.adress_table.insert({id.name, offset});
+    auto [_, success] = env.adress_table.insert({id.lexeme, offset});
     if (!success) {
         stringstream err;
-        err << "identifier \"" << id.name << "\" is redefined here";
+        err << "identifier \"" << id.lexeme << "\" is redefined here";
         throw SemanticError(err.str());
     }
-    env.stack_frame.push_back(id.name);
+    env.stack_frame.push_back(id.lexeme);
     env.curr_scope->int_def_nb++;
 }
 
@@ -277,12 +277,12 @@ void ASTDefine::codegen(ofstream& out, Environement& env) {
 
 void ASTRvalToken::codegen(ofstream& out, Environement& env) {
     if (id.type == NUM)
-        out << "\tmov rax, " << id.value << '\n';
+        out << "\tmov rax, " << atoll(id.lexeme) << '\n';
     else {
-        auto it = env.adress_table.find(id.name);
+        auto it = env.adress_table.find(id.lexeme);
         if (it == env.adress_table.end()) {
             stringstream err;
-            err << "identifier \"" << id.name << "\" is used without being defined here";
+            err << "identifier \"" << id.lexeme << "\" is used without being defined here";
             throw SemanticError(err.str());
         }
         out << "\tmov rax, QWORD [rbp+" << it->second << "]\n";
@@ -300,18 +300,18 @@ void ASTRvalAccess::codegen(ofstream& out, Environement& env) {
 unordered_map<string, string> prelude_binops;
 
 void ASTOpApply::codegen(ofstream& out, Environement& env) {
-    Signature sign = {op.name, (int)lhs.size(), (int)rhs.size()};
+    Signature sign = {op.lexeme, (int)lhs.size(), (int)rhs.size()};
     prelude_binops.insert({string("+"), "add"});
     prelude_binops.insert({string("-"), "sub"});
     prelude_binops.insert({string("*"), "imul"});
     prelude_binops.insert({string("/"), "idiv"});
-    auto it1 = prelude_binops.find(op.name);
+    auto it1 = prelude_binops.find(op.lexeme);
     if (sign.left_arity == 1 && sign.right_arity == 1 && it1 != prelude_binops.end()) {
         rhs[0]->codegen(out, env);
         out << "\tpush rax\n";
         lhs[0]->codegen(out, env);
         out << "\tpop rsi\n";
-        if (op.name == string("/"))
+        if (op.lexeme == string("/"))
             out << "\txor rdx, rdx\n"
                 << "\tidiv rsi\n";
         else
@@ -326,8 +326,9 @@ void ASTOpApply::codegen(ofstream& out, Environement& env) {
         r_arg->codegen(out, env);
         out << "\tpush rax\n";
     }
-    if (op.name == string(":print") && sign.left_arity == 0 && sign.right_arity == 2) {
-        out << "\tmov rax, 1\n"
+    if ((op.lexeme == string(":print") || op.lexeme == string(":read"))
+            && sign.left_arity == 0 && sign.right_arity == 2) {
+        out << "\tmov rax, " << (op.lexeme == string(":print")) << "\n"
             << "\tmov rdi, 1\n"
             << "\tpop rdx\n"
             << "\tpop rsi\n"
@@ -338,7 +339,7 @@ void ASTOpApply::codegen(ofstream& out, Environement& env) {
     auto it = env.op_ids.find(sign);
     if (it == env.op_ids.end()) {
         stringstream err;
-        err << "operator \"" << op.name << "\" with these arguments is used without being defined here";
+        err << "operator \"" << op.lexeme << "\" with these arguments is used without being defined here";
         throw SemanticError(err.str());
     }
     out << "\tcall op" << it->second << '\n';
@@ -370,10 +371,10 @@ void ASTLvalAccess::codegen(ofstream& out, Environement& env) {
 }
 
 string ASTVar::get_name(Environement& env) {
-    auto it = env.adress_table.find(id.name);
+    auto it = env.adress_table.find(id.lexeme);
     if (it == env.adress_table.end()) {
         stringstream err;
-        err << "identifier \"" << id.name << "\" is used without being defined here";
+        err << "identifier \"" << id.lexeme << "\" is used without being defined here";
         throw SemanticError(err.str());
     }
     stringstream res;

@@ -1,10 +1,13 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <array>
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <optional>
@@ -34,16 +37,15 @@ enum tokent{
 
 struct Token{
     tokent type;
-    int64_t value = -1;
-    const char* name = 0;
+    const char* lexeme = 0;
     struct {
         int line = 0, col = 0;
     } dbg_info;
-    Token(tokent t) : type(t) {}
-    Token(tokent t, int64_t v) : type(t), value(v) {}
+    Token(tokent type);
+    Token(tokent type, const char* lexeme);
 };
 
-vector<Token> lexer(string input);
+vector<Token> lex(const string& input);
 
 template <typename T> struct maillon;
 template <typename T>
@@ -60,6 +62,35 @@ struct maillon{
     T val;
     ConsList<T> next = NULL;
     maillon(const T& val, const ConsList<T>& next);
+};
+
+class DFA{
+    public :
+        vector<array<int, 256>> transi;
+        vector<bool> F;
+        tokent type;
+        int offset = 0;
+        int next(int state, char c);
+        DFA(tokent type, string str);
+        DFA(tokent type, std::function<void(DFA*)> constructor);
+};
+
+// NFA désigne ici un cas (très) particulier de NFA
+class NFA{
+    public :
+        vector<DFA*> dfas;
+        unordered_set<int> curr_states;
+        void next_state(char c);
+        bool est_acceptant();
+        tokent premier_acceptant();
+        NFA(vector<DFA*> dfas);
+        void reset();
+    private :
+        void parcours_etats(function<void(DFA*, int)> f);
+};
+
+class LexicalError : public runtime_error {
+    using runtime_error::runtime_error;
 };
 
 #endif

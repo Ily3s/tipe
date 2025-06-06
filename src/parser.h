@@ -44,7 +44,7 @@ class SyntaxError : public std::runtime_error{
         SyntaxError(const char* str, optional<parseNode> expected = nullopt);
 };
 
-parseTree parser(const vector<Token>& tokens);
+parseTree parse(const vector<Token>& tokens);
 
 
 #endif

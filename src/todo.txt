@@ -1,1 +1,0 @@
-- arrêter de copier des monts et des tonnes de parseTree et d'AST, faire des constructeurs et destructeurs qui malloc/free et ne manipuler que des pointers / smart pointers. (Moving semantics ?)

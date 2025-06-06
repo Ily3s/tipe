@@ -50,7 +50,7 @@ parseTree parse_##V(TokenStream& stream)
 DEF_PARSE_NONTERM(START); DEF_PARSE_NONTERM(OP_BLOCK); DEF_PARSE_NONTERM(ID_LIST); DEF_PARSE_NONTERM(STAT_LIST);
 DEF_PARSE_NONTERM(STATEMENT); DEF_PARSE_NONTERM(EXPR); DEF_PARSE_NONTERM(EXPR_LIST); DEF_PARSE_NONTERM(ACCESS);
 
-parseTree parser(const vector<Token>& tokens)
+parseTree parse(const vector<Token>& tokens)
 {
     TokenStream tokens_stream = {tokens};
     return parse_START(tokens_stream);

@@ -1,73 +1,83 @@
-operator ( a ? )
-    return if a then 1 else 0 ;
+operator (a?)
+    return if a then 1 else 0;
 
-operator ( ! a )
-    return ( 1 - ( a ? ) ) ;
+operator (! a)
+    return (1 - (a?));
 
-operator ( a || b )
-    return ( ( a ? ) + ( b ? ) ) ;
+operator (a || b)
+    return ((a?) + (b?));
 
-operator ( a && b )
-    return ( a * b ) ;
+operator (a && b)
+    return (a * b);
 
-operator ( a != b )
-    return ( a - b ) ;
+operator (a != b)
+    return (a - b);
 
-operator ( a == b )
-    return ( ! ( a != b ) ) ;
+operator (a == b)
+    return (!(a != b));
 
-operator ( a <= b )
-    return ( ( ( a - b ) - 1 ) / 9223372036854775807 ) ;
+operator (a <= b)
+    return (((a - b) - 1) / 9223372036854775807);
 
-operator ( a < b )
-    return ( ( a <= b ) && ( a != b ) ) ;
+operator (a < b)
+    return ((a <= b) && (a != b));
 
-operator ( a > b )
-    return ( b < a ) ;
+operator (a > b)
+    return (b < a);
 
-operator ( a >= b )
-    return ( b <= a ) ;
+operator (a >= b)
+    return (b <= a);
 
-operator ( a -> b )
-    return ( b && ( ! a ) ) ;
+operator (a -> b)
+    return (b && (! a));
 
-operator ( a <-> b )
-    return ( ( a -> b ) && ( b -> a ) ) ;
+operator (a <-> b)
+    return ((a -> b) && (b -> a));
 
-operator ( - a )
-    return ( 0 - a ) ;
+operator (- a)
+    return (0 - a);
 
 operator ( src .cpy_to dest )
-    [ dest ] = [ src ] ;
-    return 0 ;
+    [dest] = [src];
+    return 0;
 
 operator ( src len .cpy_to dest )
-    return if ( len == 0 ) then 0
-           else ( ( src .cpy_to dest ) +
-                  ( ( src + 1 ) ( len - 1 ) .cpy_to ( dest + 1 ) )
-                ) ;
+    return if (len == 0) then 0
+           else ( (src .cpy_to dest) +
+                  ((src + 1) (len - 1) .cpy_to (dest + 1))
+                );
 
-operator ( :main )
-    [ 0 ] = 72 ;
-    [ 1 ] = 101 ;
-    [ 2 ] = 108 ;
-    [ 3 ] = 108 ;
-    [ 4 ] = 111 ;
-    [ 5 ] = 44 ;
-    [ 6 ] = 32 ;
-    [ 7 ] = 119 ;
-    [ 11 ] = 100 ;
-    [ 8 ] = 111 ;
-    [ 9 ] = 114 ;
-    [ 10 ] = 108 ;
-    [ 13 ] = 10 ;
-    [ 12 ] = 33 ;
-    let a = 256 ;
-    a = [ 12 ] ;
-    a = ( a / 2 ) ;
+operator ( addr len .find char )
+    return if (len == 0) then (- 1)
+           else if ([addr] == char) then 0
+           else (((addr + 1) (len - 1) .find char) + 1);
 
-    ( 0 14 .cpy_to 727 ) ;
+operator (:getline addr)
+    let max_len = (80000 - addr);
+    (:read addr max_len);
+    return ((addr max_len .find 10) + 1);
 
-    ( :print 727 14 ) ;
+operator (:main)
+    [0] = 72;
+    [1] = 101;
+    [2] = 108;
+    [3] = 108;
+    [4] = 111;
+    [5] = 44;
+    [6] = 32;
+    [7] = 119;
+    [8] = 111;
+    [9] = 114;
+    [10] = 108;
+    [11] = 100;
+    [12] = 33;
+    [13] = 10;
+
+    (0 14 .cpy_to 727);
+
+    (:print 727 14);
+
+    let size = (:getline 727);
+    (:print 727 size);
     
-    return a ;
+    return 0;

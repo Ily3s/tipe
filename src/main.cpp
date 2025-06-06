@@ -19,8 +19,8 @@ int main(int argc, char** argv)
     file.read(&input[0], size);
     file.close();
 
-    vector<Token> tokens = lexer(input);
-    parseTree tree = parser(tokens);
+    vector<Token> tokens = lex(input);
+    parseTree tree = parse(tokens);
     AST ast = toAST(tree);
 
     Environement env;
