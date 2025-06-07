@@ -41,8 +41,7 @@ struct Token{
     struct {
         int line = 0, col = 0;
     } dbg_info;
-    Token(tokent type);
-    Token(tokent type, const char* lexeme);
+    Token(tokent type, const char* lexeme = 0);
 };
 
 vector<Token> lex(const string& input);

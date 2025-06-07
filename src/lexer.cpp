@@ -14,41 +14,41 @@ bool isnum(char c) {
 }
 
 DFA _LET(LET, "let");
-DFA _ID(ID, [](DFA* ceci) {
-    ceci->F = {0, 1};
-    ceci->transi.resize(2);
+DFA _ID(ID, [](DFA* dfa) {
+    dfa->F = {0, 1};
+    dfa->transi.resize(2);
     for (int c = 0; c < 255; c++) {
         if (isalpha(c) || c == '_')
-            ceci->transi[0][c] = ceci->transi[1][c] = 1;
+            dfa->transi[0][c] = dfa->transi[1][c] = 1;
         else if (isnum(c)) {
-            ceci->transi[1][c] = 1;
-            ceci->transi[0][c] = -1;
+            dfa->transi[1][c] = 1;
+            dfa->transi[0][c] = -1;
         }
         else
-            ceci->transi[0][c] = ceci->transi[1][c] = -1;
+            dfa->transi[0][c] = dfa->transi[1][c] = -1;
     }
 });
 DFA _EQUALS(EQUALS, "=");
 DFA _OPERATOR(OPERATOR, "operator");
 DFA _RETURN(RETURN, "return");
-DFA _OPID(OPID, [](DFA* ceci) {
-    ceci->F = {0, 1};
-    ceci->transi.resize(2);
+DFA _OPID(OPID, [](DFA* dfa) {
+    dfa->F = {0, 1};
+    dfa->transi.resize(2);
     for (int c = 0; c < 255; c++) {
-        ceci->transi[0][c] = ceci->transi[1][c] = -1;
+        dfa->transi[0][c] = dfa->transi[1][c] = -1;
         if (op_hds.find(c) != string::npos)
-            ceci->transi[0][c] = ceci->transi[1][c] = 1;
+            dfa->transi[0][c] = dfa->transi[1][c] = 1;
         if (isalnum(c) || c == '_')
-            ceci->transi[1][c] = 1;
+            dfa->transi[1][c] = 1;
     }
 });
 DFA _LPAR(LPAR, "(");
 DFA _RPAR(RPAR, ")");
-DFA _NUM(NUM, [](DFA* ceci) {
-    ceci->F = {0, 1};
-    ceci->transi.resize(2);
+DFA _NUM(NUM, [](DFA* dfa) {
+    dfa->F = {0, 1};
+    dfa->transi.resize(2);
     for (int c = 0; c < 255; c++)
-        ceci->transi[0][c] = ceci->transi[1][c] = isnum(c) ? 1 : -1;
+        dfa->transi[0][c] = dfa->transi[1][c] = isnum(c) ? 1 : -1;
 });
 DFA _SEMICOL(SEMICOL, ";");
 DFA _IF(IF, "if");
@@ -57,11 +57,10 @@ DFA _ELSE(ELSE, "else");
 DFA _LBRACKET(LBRACKET, "[");
 DFA _RBRACKET(RBRACKET, "]");
 
-NFA automaton({&_LET, &_EQUALS, &_OPERATOR, &_RETURN, &_LPAR,
+NFA automata({&_LET, &_EQUALS, &_OPERATOR, &_RETURN, &_LPAR,
                 &_RPAR, &_SEMICOL, &_IF, &_THEN, &_ELSE,
                 &_LBRACKET, &_RBRACKET, &_NUM, &_OPID, &_ID});
 
-Token::Token(tokent type) : type(type) {}
 Token::Token(tokent type, const char* lexeme) : type(type), lexeme(lexeme) {}
 
 template <typename T>
@@ -105,12 +104,12 @@ vector<Token> lex(const string& input)
         }
         forward = curr-1;
         tokent type;
-        while (automaton.curr_states.size() && forward < (int)input.size()) {
+        while (automata.curr_states.size() && forward < (int)input.size()) {
             forward++;
-            automaton.next_state(input[forward]);
-            if (automaton.est_acceptant()) {
+            automata.next_state(input[forward]);
+            if (automata.est_acceptant()) {
                 last_accept = forward;
-                type = automaton.premier_acceptant();
+                type = automata.premier_acceptant();
             }
         }
         if (last_accept < curr) {
@@ -121,7 +120,7 @@ vector<Token> lex(const string& input)
         lexemes.push({input.begin()+curr, input.begin()+last_accept+1});
         tokens.emplace_back(type, lexemes.front().c_str());
         tokens.back().dbg_info = {.line = line, .col = col};
-        automaton.reset();
+        automata.reset();
         col += lexemes.front().size();
         curr = last_accept+1;
     }
