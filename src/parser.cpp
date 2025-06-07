@@ -9,6 +9,9 @@ parseNode::parseNode(nonTerm nt)
 parseNode::parseNode(Token tok)
     : tag(TOKEN), val({.tok = tok}) {}
 
+parseTree::parseTree(parseNode root, vector<parseTree>&& childs)
+    : root(root), childs(std::move(childs)) {}
+
 class TokenOpt : public optional<Token> {
 public:
     using optional<Token>::optional;
@@ -54,16 +57,24 @@ parseTree parse(const vector<Token>& tokens)
 {
     TokenStream tokens_stream = {tokens};
     return parse_START(tokens_stream);
-    //throw SyntaxError("Program must contains :main function");
+}
+
+template<typename T, typename... Args>
+auto make_vec(Args&&... args) {
+    std::vector<T> vec;
+    vec.reserve(sizeof...(Args));
+    (vec.emplace_back(std::forward<Args>(args)), ...);
+    return vec;
 }
 
 parseTree parse_START(TokenStream& stream)
 {
     TokenOpt t;
     if (stream.ended())
-        return parseTree{.root = parseNode{START}, .childs = {}};
+        return parseTree{parseNode{START}};
     parseTree op_block = parse_OP_BLOCK(stream);
-    return parseTree{.root = parseNode{START}, .childs = {op_block, parse_START(stream)}};
+    auto childs = make_vec<parseTree>(std::move(op_block), parse_START(stream));
+    return parseTree{parseNode{START}, std::move(childs)};
 }
 
 // todo : better way to "expect & raise error or add to tree"
@@ -74,7 +85,7 @@ parseTree parse_OP_BLOCK(TokenStream& stream)
     stream >> t;
     // gestion d'erreurs reste à améliorer pour inclure le numéro de ligne ... here à préciser
     if (t != OPERATOR) throw SyntaxError("expected \"operator\" keyword here", Token{OPERATOR});
-    parseTree res = {.root = parseNode{OP_BLOCK}};
+    parseTree res = {parseNode{OP_BLOCK}};
     res.add_token(t.value());
     stream >> t;
     if (t != LPAR) throw SyntaxError("expected \"(\" here", Token{LPAR});
@@ -87,7 +98,6 @@ parseTree parse_OP_BLOCK(TokenStream& stream)
     stream >> t;
     if (t != RPAR) throw SyntaxError("expected \")\" here", Token{RPAR});
     res.add_token(t.value());
-    //if (!subtree3.has_value()) throw SyntaxError("operator must have a return value");
     res.childs.push_back(parse_STAT_LIST(stream));
     return res;
 }
@@ -96,9 +106,9 @@ parseTree parse_ID_LIST(TokenStream& stream) {
     TokenOpt tok;
     stream >> tok;
     if (tok == ID)
-        return {.root = {ID_LIST}, .childs = {{.root = {tok.value()}}, parse_ID_LIST(stream)}};
+        return {{ID_LIST}, make_vec<parseTree>( parseTree{{tok.value()}}, parse_ID_LIST(stream) )};
     stream.go_back();
-    return {.root = {ID_LIST}};
+    return {{ID_LIST}};
 }
 
 parseTree parse_STAT_LIST(TokenStream& stream) {
@@ -107,14 +117,14 @@ parseTree parse_STAT_LIST(TokenStream& stream) {
     stream.go_back();
     if (tok != OPERATOR && tok.has_value()) {
         parseTree statement = parse_STATEMENT(stream);
-        return {.root = {STAT_LIST}, .childs = {statement, parse_STAT_LIST(stream)}};
+        return {{STAT_LIST}, make_vec<parseTree>(std::move(statement), parse_STAT_LIST(stream))};
     } else
-        return {.root = {STAT_LIST}};
+        return {{STAT_LIST}};
 };
 
 // précondition : !stream.ended()
 parseTree parse_STATEMENT(TokenStream& stream) {
-    parseTree res = {.root = {STATEMENT}};
+    parseTree res = {{STATEMENT}};
     TokenOpt tok;
     stream >> tok;
     if (tok != LET && tok != RETURN && tok != ID)
@@ -144,9 +154,9 @@ parseTree parse_STATEMENT(TokenStream& stream) {
 parseTree parse_EXPR(TokenStream& stream) {
     TokenOpt tok;
     stream >> tok;
-    parseTree res = {.root = {EXPR}};
+    parseTree res = {{EXPR}};
     if (tok == NUM || tok == ID)
-        return {.root = {EXPR}, .childs = {{.root = {tok.value()}}}};
+        return {{EXPR}, make_vec<parseTree>(parseTree{{tok.value()}})};
     else if (tok == LPAR) {
         res.add_token(tok.value());
         res.childs.push_back(parse_EXPR_LIST(stream));
@@ -183,7 +193,7 @@ parseTree parse_ACCESS(TokenStream& stream) {
     stream >> token;
     if (token != LBRACKET)
         throw SyntaxError("expected \"[\" here", Token{LBRACKET});
-    parseTree res{.root = ACCESS};
+    parseTree res{ACCESS};
     res.add_token(token.value());
     res.childs.push_back(parse_EXPR(stream));
     stream >> token;
@@ -196,11 +206,11 @@ parseTree parse_ACCESS(TokenStream& stream) {
 parseTree parse_EXPR_LIST(TokenStream& stream) {
     try {
         parseTree expr = parse_EXPR(stream);
-        return {.root = {EXPR_LIST}, .childs = {expr, parse_EXPR_LIST(stream)}};
+        return {{EXPR_LIST}, make_vec<parseTree>(std::move(expr), parse_EXPR_LIST(stream))};
     } catch (const SyntaxError& e) {
         if (e.expected.has_value() && e.expected->tag == parseNode::NONTERM && e.expected->val.nt == EXPR) {
             stream.go_back();
-            return {.root = {EXPR_LIST}};
+            return {{EXPR_LIST}};
         }
         else throw e;
     }

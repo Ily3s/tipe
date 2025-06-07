@@ -19,3 +19,7 @@
 -> évidemment, on a besoin de string literal, parce que le print statement en 14 lignes ...
 
 -> peut-être enfin utiliser cette notion de scope pour faire de meilleurs if statements (cf .cpy_to)
+
+-> peut-être se débarasser du TokenStream operator<< et du ridicule go_back pour les remplacer par peek et next
+
+-> dans le Lexer, transformer ws en token à part entière destiné à être supprimé à la fin de la fonction lex ?

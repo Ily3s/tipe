@@ -30,9 +30,17 @@ class parseNode{
         parseNode(Token tok);
 };
 
-struct parseTree{
+class parseTree{
+    public :
     parseNode root;
     vector<parseTree> childs{};
+
+    parseTree(parseNode, vector<parseTree>&& = {});
+    parseTree(const parseTree&) = delete;
+    parseTree& operator=(const parseTree&) = delete;
+    parseTree(parseTree&&) noexcept = default;
+    parseTree& operator=(parseTree&&) noexcept = default;
+
     inline void add_token(const Token& tok) {
         childs.push_back({parseNode{tok}});
     }
@@ -45,6 +53,5 @@ class SyntaxError : public std::runtime_error{
 };
 
 parseTree parse(const vector<Token>& tokens);
-
 
 #endif
