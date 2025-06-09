@@ -19,20 +19,20 @@ extern string binop_hds;
 
 enum tokent{
     LET,
-    ID,
-    EQUALS,
-    OPERATOR,
-    RETURN,
-    OPID,
-    LPAR,
-    RPAR,
-    NUM,
-    SEMICOL,
     IF,
     THEN,
     ELSE,
+    RETURN,
+    OPERATOR,
+    SEMICOL,
+    EQUALS,
+    LPAR,
+    RPAR,
     LBRACKET,
-    RBRACKET
+    RBRACKET,
+    NUM,
+    ID,
+    OPID
 };
 
 struct Token{
@@ -67,25 +67,25 @@ class DFA{
     public :
         vector<array<int, 256>> transi;
         vector<bool> F;
-        tokent type;
-        int offset = 0;
-        int next(int state, char c);
+        tokent tag;
         DFA(tokent type, string str);
         DFA(tokent type, std::function<void(DFA*)> constructor);
 };
 
-// NFA désigne ici un cas (très) particulier de NFA
 class NFA{
-    public :
-        vector<DFA*> dfas;
+    private :
+        // on choisi epsilon comme 257ème charactère
+        vector<array<unordered_set<int>, 257>> transi;
+        vector<bool> F;
+        vector<tokent> tag;
         unordered_set<int> curr_states;
+    public :
+        NFA(const vector<DFA>& dfas);
         void next_state(char c);
         bool est_acceptant();
-        tokent premier_acceptant();
-        NFA(vector<DFA*> dfas);
+        tokent output();
         void reset();
-    private :
-        void parcours_etats(function<void(DFA*, int)> f);
+        bool is_blocked();
 };
 
 class LexicalError : public runtime_error {

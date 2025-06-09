@@ -57,9 +57,9 @@ DFA _ELSE(ELSE, "else");
 DFA _LBRACKET(LBRACKET, "[");
 DFA _RBRACKET(RBRACKET, "]");
 
-NFA automata({&_LET, &_EQUALS, &_OPERATOR, &_RETURN, &_LPAR,
-                &_RPAR, &_SEMICOL, &_IF, &_THEN, &_ELSE,
-                &_LBRACKET, &_RBRACKET, &_NUM, &_OPID, &_ID});
+NFA automata({_LET, _EQUALS, _OPERATOR, _RETURN, _LPAR,
+                _RPAR, _SEMICOL, _IF, _THEN, _ELSE,
+                _LBRACKET, _RBRACKET, _NUM, _OPID, _ID});
 
 Token::Token(tokent type, const char* lexeme) : type(type), lexeme(lexeme) {}
 
@@ -103,13 +103,13 @@ vector<Token> lex(const string& input)
             continue;
         }
         forward = curr-1;
-        tokent type;
-        while (automata.curr_states.size() && forward < (int)input.size()) {
+        tokent tag;
+        while (!automata.is_blocked() && forward < (int)input.size()) {
             forward++;
             automata.next_state(input[forward]);
             if (automata.est_acceptant()) {
                 last_accept = forward;
-                type = automata.premier_acceptant();
+                tag = automata.output();
             }
         }
         if (last_accept < curr) {
@@ -118,7 +118,7 @@ vector<Token> lex(const string& input)
             throw LexicalError(err_msg.str());
         }
         lexemes.push({input.begin()+curr, input.begin()+last_accept+1});
-        tokens.emplace_back(type, lexemes.front().c_str());
+        tokens.emplace_back(tag, lexemes.front().c_str());
         tokens.back().dbg_info = {.line = line, .col = col};
         automata.reset();
         col += lexemes.front().size();
@@ -127,14 +127,14 @@ vector<Token> lex(const string& input)
     return tokens;
 }
 
-DFA::DFA(tokent type, function<void(DFA*)> constructor)
-    : type(type)
+DFA::DFA(tokent tag, function<void(DFA*)> constructor)
+    : tag(tag)
 {
     constructor(this);
 }
 
-DFA::DFA(tokent type, string str)
-    : type(type)
+DFA::DFA(tokent tag, string str)
+    : tag(tag)
 {
     if (!str.size()) return;
     for (char c : str) {
@@ -150,69 +150,79 @@ DFA::DFA(tokent type, string str)
         transi.back()[i] = -1;
 }
 
-int DFA::next(int state, char c) {
-    assert(transi[state][c] != -1);
-    return transi[state][c]+offset;
-}
-
-NFA::NFA(vector<DFA*> dfas)
-    : dfas(dfas)
+NFA::NFA(const vector<DFA>& dfas)
 {
-    int curr_offset = 0;
-    for (DFA* dfa : dfas) {
-        dfa->offset = curr_offset;
-        curr_states.insert(dfa->offset);
-        curr_offset += dfa->transi.size();
+    int offset = 1;
+    F.push_back(0);
+    transi.emplace_back();
+    for (const DFA& dfa : dfas) {
+        int n = dfa.F.size();
+        F.insert(F.end(), dfa.F.begin(), dfa.F.end());
+        transi.resize(transi.size()+n);
+        tag.resize(transi.size()+n);
+        for (int i = 0; i < n; i++) {
+            for (int c = 0; c < 256; c++) {
+                if (dfa.transi[i][c] != -1)
+                    transi[offset+i][c].insert(dfa.transi[i][c]+offset);
+            }
+            tag[offset+i] = dfa.tag;
+        }
+        transi[0][256].insert(offset);
+        offset += n;
     }
+    reset();
 }
 
 void NFA::reset() {
     unordered_set<int> init_states;
-    for (DFA* dfa : dfas)
-        init_states.insert(dfa->offset);
-    curr_states = init_states;
-}
-
-void NFA::parcours_etats(function<void(DFA*, int)> f) {
-    for (int state : curr_states) {
-        for (DFA* dfa : dfas) {
-            int r_state = state - dfa->offset;
-            if (r_state < 0 || r_state >= dfa->transi.size())
-                continue;
-            f(dfa, r_state);
+    init_states.insert(0);
+    int size;
+    do {
+        size = init_states.size();
+        for (int state : init_states) {
+            for (int next : transi[state][256])
+                init_states.insert(next);
         }
-    }
+    } while (size != init_states.size());
+    curr_states = init_states;
 }
 
 void NFA::next_state(char c) {
     unordered_set<int> new_states;
-    parcours_etats([&new_states, c](DFA* dfa, int state) {
-            if (dfa->transi[state][c] != -1)
-                new_states.insert(dfa->next(state, c));
-    });
+    for (int state : curr_states) {
+        for (int next : transi[state][c])
+            new_states.insert(next);
+    }
+    int size;
+    do {
+        size = new_states.size();
+        for (int state : new_states) {
+            for (int next : transi[state][256])
+                new_states.insert(next);
+        }
+    } while (size != new_states.size());
     curr_states = new_states;
 }
 
 bool NFA::est_acceptant() {
-    bool res = false;
-    parcours_etats([&res](DFA* dfa, int state) {
-            res |= dfa->F[state];
-    });
-    return res;
+    for (int state : curr_states) {
+        if (F[state]) return true;
+    }
+    return false;
 }
 
 // précondition : est_acceptant() doit être vrai
-tokent NFA::premier_acceptant() {
+tokent NFA::output() {
     set<int> sorted_states;
     for (int state : curr_states)
         sorted_states.insert(state);
-    int dfa_i = 0;
     for (int state : sorted_states) {
-        while (state >= dfas[dfa_i]->offset + dfas[dfa_i]->transi.size())
-            dfa_i++;
-        if (dfas[dfa_i]->F[state-dfas[dfa_i]->offset])
-            return dfas[dfa_i]->type;
+        if (F[state]) return tag[state];
     }
     assert("précondition non respecté : est_acceptant()");
     return tokent{};
+}
+
+bool NFA::is_blocked() {
+    return !curr_states.size();
 }

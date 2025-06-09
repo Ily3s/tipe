@@ -1,0 +1,32 @@
+operator (a == b)
+    return if (a - b) then 0 else 1;
+
+operator (a ^ b)
+    return
+    if (b == 0) then 1
+    else if (((b / 2) * 2) == b) then ((a * a) ^ (b / 2))
+    else (a * ((a * a) ^ (b / 2)));
+
+operator(a % b)
+    let quotient = a/b;
+    return a-quotient*b;
+
+operator(lst.sum)
+    return 
+    if lst.size then
+        lst.first + lst.next.sum
+    else 0;
+
+operator(:isprime_aux n p)
+    return
+    if (p == 1) then 1
+    else if (((n / p) * p) - n) then (:isprime_aux n (p - 1))
+    else 0;
+
+operator(n.isprime)
+    return
+    if (n == 1) then 0
+    else (:isprime_aux n (n - 1));
+
+operator (:main)
+    return (200029.isprime);
