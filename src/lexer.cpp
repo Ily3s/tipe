@@ -1,5 +1,6 @@
 #include "lexer.h"
 
+#include <algorithm>
 #include <cwctype>
 #include <sstream>
 #include <cassert>
@@ -213,14 +214,13 @@ bool NFA::est_acceptant() {
 
 // précondition : est_acceptant() doit être vrai
 tokent NFA::output() {
-    set<int> sorted_states;
-    for (int state : curr_states)
-        sorted_states.insert(state);
-    for (int state : sorted_states) {
-        if (F[state]) return tag[state];
+    int min_state = transi.size();
+    for (int state : curr_states) {
+        if (state < min_state && F[state])
+            min_state = state;
     }
-    assert("précondition non respecté : est_acceptant()");
-    return tokent{};
+    assert(min_state < transi.size() && "précondition non respecté : est_acceptant()");
+    return tag[min_state];
 }
 
 bool NFA::is_blocked() {
