@@ -138,8 +138,11 @@ parseTree parse_STATEMENT(TokenStream& stream) {
         if (tok != ID) throw SyntaxError("expected variable name here", Token{ID});
         res.add_token(tok.value());
     }
+    TokenOpt old_tok = tok;
     if (tok == LET || tok == ID || tok == LBRACKET) {
         stream >> tok;
+        if ((old_tok == LBRACKET || old_tok == ID) && tok == SEMICOL)
+            return {{STATEMENT}, make_vec<parseTree>(parseTree{{EXPR}, std::move(res.childs)}, parseTree{{SEMICOL}})};
         if (tok != EQUALS) throw SyntaxError("expected \"=\" here", Token{EQUALS});
         res.add_token(tok.value());
     }
